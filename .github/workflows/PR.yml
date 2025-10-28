@@ -24,10 +24,19 @@ jobs:
 
 ##### DEBUG HACK
       - name: Get changed files in the docs folder
-        id: changed-files-specific
+        id: changed-files
         uses: tj-actions/changed-files@v45
         # with:
         #   files_ignore: docs/static.js
+
+
+      - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file was changed"
+          done
 
       # - name: Run step if any file(s) in the docs folder change
       #   if: steps.changed-files-specific.outputs.any_changed == 'true'
