@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -39,7 +41,9 @@ jobs:
 
 
       - run: sudo apt update
-      - run: sudo apt-get install cmake clang-tidy libcunit1-dev -y
+      - run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get install cmake clang-tidy libcunit1-dev clang-format -y --no-install-recommends
 
       - name: compile in ${{ env.latest }}
         working-directory: ${{ env.latest }}
@@ -54,6 +58,8 @@ jobs:
         with:
           repo-root: ${{ env.latest }}
           database: _build
+          tidy-review: true
+          format-review: true
 
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
