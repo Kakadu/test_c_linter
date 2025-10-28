@@ -1,7 +1,7 @@
 name: Build latest changed dir
 
 on:
-  push:
+  pull_request:
     branches:
       - 'master'
 
