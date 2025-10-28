@@ -1,0 +1,74 @@
+name: Build latest changed dir
+
+on:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Print
+        run: env | sort
+
+##### DEBUG HACK
+      - name: Get changed files in the docs folder
+        id: changed-files-specific
+        uses: tj-actions/changed-files@v45
+        # with:
+        #   files_ignore: docs/static.js
+
+      # - name: Run step if any file(s) in the docs folder change
+      #   if: steps.changed-files-specific.outputs.any_changed == 'true'
+      #   env:
+      #     ALL_CHANGED_FILES: ${{ steps.changed-files-specific.outputs.all_changed_files }}
+      #   run: |
+      #     echo "One or more files in the docs folder has changed."
+      #     echo "List all the files that have changed: $ALL_CHANGED_FILES"
+##### END OF DEBUG HACK
+
+      - run: sudo apt update
+      - run: sudo apt-get install cmake ocaml-nox
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                # fix me later
+
+      # - name: Get branch name
+      #   id: branch-name
+      #   uses: tj-actions/branch-names@v8
+
+      # - name: Print Ref brach name
+      #   run: |
+      #     echo "${{ steps.branch-name.outputs.ref_branch }}"
+
+
+      - name: Detect latest directory with changes in ${{ github.event.repository.name }}
+        working-directory: .github
+        run: |
+          printf '%s\n%s\n' '#require "str,unix";;' "$(cat detect_latest_pr.ml)" > detect_latest_pr.ml
+          printf '%s\n%s\n' '#use "topfind";;' "$(cat detect_latest_pr.ml)" > detect_latest_pr.ml
+          (cd .. && ocaml .github/detect_latest_pr.ml -v "pull/${{ steps.branch-name.outputs.ref_branch }}" -repo ${{ github.event.repository.name }} -template demo) >> $GITHUB_ENV
+
+
+      - name: Detected directory -- ${{ env.latest }}
+        run: echo ${{ env.latest }}
+
+
+      - name: Compiling ${{ env.latest }} (profile=release)...
+        working-directory: ./${{ env.latest }}
+        run: |
+          opam exec -- dune build @all @check --profile=release
+
+      - name: Running tests in ${{ env.latest }}...
+        working-directory: ./${{ env.latest }}
+        run: |
+          opam exec -- dune runtest --profile=release
+
