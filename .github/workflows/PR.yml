@@ -48,36 +48,22 @@ jobs:
 ##### END OF DEBUG HACK
 
       - run: sudo apt update
-      - run: sudo apt-get install cmake ocaml-nox
+      - run: sudo apt-get install cmake clang-tidy
 
-      # - name: Get branch name
-      #   id: branch-name
-      #   uses: tj-actions/branch-names@v8
-
-      # - name: Print Ref brach name
-      #   run: |
-      #     echo "${{ steps.branch-name.outputs.ref_branch }}"
-
-
-      - name: Detect latest directory with changes in ${{ github.event.repository.name }}
-        working-directory: .github
+      - name: compile in ${{ env.latest }}
+        working-directory: ${{ env.latest }}
         run: |
-          printf '%s\n%s\n' '#require "str,unix";;' "$(cat detect_latest_pr.ml)" > detect_latest_pr.ml
-          printf '%s\n%s\n' '#use "topfind";;' "$(cat detect_latest_pr.ml)" > detect_latest_pr.ml
-          (cd .. && ocaml .github/detect_latest_pr.ml -v "pull/${{ steps.branch-name.outputs.ref_branch }}" -repo ${{ github.event.repository.name }} -template demo) >> $GITHUB_ENV
+          cmake -S . -B _build
+          cmake --build _build
 
+      - uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          repo-root: ${{ env.latest }}
+          database: _build
 
-      - name: Detected directory -- ${{ env.latest }}
-        run: echo ${{ env.latest }}
-
-
-      - name: Compiling ${{ env.latest }} (profile=release)...
-        working-directory: ./${{ env.latest }}
-        run: |
-          opam exec -- dune build @all @check --profile=release
-
-      - name: Running tests in ${{ env.latest }}...
-        working-directory: ./${{ env.latest }}
-        run: |
-          opam exec -- dune runtest --profile=release
-
+      - name: Fail fast?!
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1
