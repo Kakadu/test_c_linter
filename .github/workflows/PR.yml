@@ -17,6 +17,11 @@ jobs:
       - name: Print
         run: env | sort
 
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                # fix me later
+
 ##### DEBUG HACK
       - name: Get changed files in the docs folder
         id: changed-files-specific
@@ -35,11 +40,6 @@ jobs:
 
       - run: sudo apt update
       - run: sudo apt-get install cmake ocaml-nox
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0                # fix me later
 
       # - name: Get branch name
       #   id: branch-name
