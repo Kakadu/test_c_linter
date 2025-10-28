@@ -1,0 +1,67 @@
+name: Build latest changed dir
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Print
+        run: env | sort
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                # fix me later
+
+      - name: Get changed files in the docs folder
+        id: changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          dir_names: "true"
+
+      - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          dirs=$(echo ${ALL_CHANGED_FILES} | uniq | head -n 1)
+          echo "latest=${dirs}" >> $GITHUB_ENV
+
+      - run: echo ${{ env.latest }}
+
+
+      - run: sudo apt update
+      - run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get install cmake clang-tidy libcunit1-dev clang-format -y --no-install-recommends
+
+      - name: compile in ${{ env.latest }}
+        working-directory: ${{ env.latest }}
+        run: |
+          cmake -S . -B _build
+          cmake --build _build
+
+      - uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          repo-root: ${{ env.latest }}
+          database: _build
+          tidy-review: false
+          format-review: false
+          thread-comments: update
+
+      - name: Fail fast?!
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1
