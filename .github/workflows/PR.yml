@@ -22,12 +22,10 @@ jobs:
         with:
           fetch-depth: 0                # fix me later
 
-##### DEBUG HACK
       - name: Get changed files in the docs folder
         id: changed-files
         uses: tj-actions/changed-files@v45
-        # with:
-        #   files_ignore: docs/static.js
+
 
 
       - name: List all changed files
@@ -38,17 +36,10 @@ jobs:
           echo "latest=${dirs}" >> $GITHUB_ENV
 
       - run: echo ${{ env.latest }}
-      # - name: Run step if any file(s) in the docs folder change
-      #   if: steps.changed-files-specific.outputs.any_changed == 'true'
-      #   env:
-      #     ALL_CHANGED_FILES: ${{ steps.changed-files-specific.outputs.all_changed_files }}
-      #   run: |
-      #     echo "One or more files in the docs folder has changed."
-      #     echo "List all the files that have changed: $ALL_CHANGED_FILES"
-##### END OF DEBUG HACK
+
 
       - run: sudo apt update
-      - run: sudo apt-get install cmake clang-tidy
+      - run: sudo apt-get install cmake clang-tidy libcunit1-dev -y
 
       - name: compile in ${{ env.latest }}
         working-directory: ${{ env.latest }}
