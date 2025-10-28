@@ -34,10 +34,10 @@ jobs:
         env:
           ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
-          dirs=$(echo ${ALL_CHANGED_FILES} | awk -F "/" '{print $1}' - | uniq | head -n 1)
-          echo "latest=${dirs}" >> $GITHUB_ENV
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file was changed"
+          done
 
-      - run: echo ${{ env.latest }}
       # - name: Run step if any file(s) in the docs folder change
       #   if: steps.changed-files-specific.outputs.any_changed == 'true'
       #   env:
